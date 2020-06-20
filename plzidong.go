@@ -19,7 +19,7 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
-	num := 101
+	num := 121
 	for scanner.Scan() {
 		lineText := scanner.Text()
 		pak := strings.Split(lineText, "||")

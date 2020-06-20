@@ -42,7 +42,7 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk, num int) {
 	cmd := exec.Command("/bin/sh", "-c", comm)
 	cmd.Stdout = os.Stdout
 	_ = cmd.Run()
-	fmt.Printf("\\033[1;37;41m%s\\033[0m\\n\", Upload Complete")
+	fmt.Printf("\033[32m%s\033[0m", "Upload Complete\n")
 }
 
 func query(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
@@ -69,7 +69,7 @@ func query(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
 	cmd := exec.Command("/bin/sh", "-c", comm)
 	cmd.Stdout = os.Stdout
 	_ = cmd.Run()
-	fmt.Printf("\\033[1;37;41m%s\\033[0m\\n\", Query Complete")
+	fmt.Printf("\033[32m%s\033[0m", "Query Complete\n")
 
 }
 
@@ -92,7 +92,7 @@ func chainquery() {
 		cmd := exec.Command("/bin/sh", "-c", comm)
 		cmd.Stdout = os.Stdout
 		_ = cmd.Run()
-		fmt.Printf("\\033[1;37;41m%s\\033[0m\\n\", Chainquery Complete")
+		fmt.Printf("\033[32m%s\033[0m", "Chainquery Complete\n")
 	}
 }
 
