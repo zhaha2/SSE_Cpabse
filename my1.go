@@ -26,7 +26,6 @@ var curveParams = "type a\n" +
 type MyChaincode struct {
 }
 
-//实现Init函数，初始化
 func (t *MyChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 	fmt.Println("my init")
 	args := stub.GetStringArgs()
@@ -39,7 +38,7 @@ func (t *MyChaincode) Init(stub shim.ChaincodeStubInterface) pb.Response {
 		return shim.Error(fmt.Sprintf("Failed to create asset: %s", args[0]))
 	}
 	return shim.Success(nil)
-}
+} //实现Init函数
 
 func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 	fn, args := stub.GetFunctionAndParameters()
@@ -54,9 +53,9 @@ func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		result, err = query(stub, args)
 	} else if fn == "chainquery" {
 		fmt.Println("chainquery")
-		result, err = chainquery(stub, args[0])		//arg[0]为地址（Key1, Key2, ...）
+		ret, err = chainquery(stub, args[0])
 	}
-	if err != nil {
+	if r != nil {
 		return shim.Error(err.Error())
 	}
 
@@ -66,8 +65,6 @@ func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 
 func upload(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	Key := "Key" + args[0]
-	//args[0]为id，即计数器n，args[1]为key，关键字，args[2]为值，即关键字对应的数据
-	//此处的key为计数器n和kw的复合键，即最后字典中键值对的键
 	var key, _ = stub.CreateCompositeKey(Key, []string{args[0], args[1]})
 	if len(args) != 3 {
 		return []byte(""), fmt.Errorf("Incorrect arguments. Expecting ID ,a key and a value")
@@ -77,14 +74,11 @@ func upload(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	if err != nil {
 		return []byte(""), fmt.Errorf("Failed to set asset: %s", args[0])
 	}
-	fmt.Printf("\033[32m%s\033[0m\n", "id: " + args[0] + " data: " + args[2])
-	fmt.Println()
 	return []byte(args[0]), nil
 }
 
 func query(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	start := time.Now()		//开始时间，一会计时用
-
+	start := time.Now()
 	var p *pbc.Pairing
 	params := new(pbc.Params)
 	params, _ = pbc.NewParamsFromString(curveParams)
@@ -95,7 +89,6 @@ func query(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	tk := cpabse.TkDec(args[0], p)
 
-	//用符合键中一个键进行查询，这里用kw查询
 	queryResultsIterator, err := stub.GetStateByPartialCompositeKey("Key", []string{})
 	if err != nil {
 		return []byte(""), fmt.Errorf("Incorrect")
@@ -104,7 +97,6 @@ func query(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 
 	var result []string
 
-	//返回结果
 	for queryResultsIterator.HasNext() {
 
 		responseRange, err := queryResultsIterator.Next()
@@ -127,20 +119,15 @@ func query(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	buf2 := &bytes.Buffer{}
 	gob.NewEncoder(buf2).Encode(result)
 	byteSlice := []byte(buf2.Bytes())
-
-	//结束时间
 	end := time.Now()
-	//输出总时间
 	b := end.Sub(start)
-	fmt.Println("Query time cost: %s", b)
+	fmt.Println(b)
 	return byteSlice, nil
 }
 
 func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
-	//开始时间，一会计时用
 	start := time.Now()
-	fmt.Printf("\033[33m%s\033[0m\n", "Key: " + Key)
-	//用符合键中一个键进行查询，这里用地址Key查询
+	fmt.Println(Key)
 	queryResultsIterator, err := stub.GetStateByPartialCompositeKey(Key, []string{})
 	if err != nil {
 		return []byte(""), fmt.Errorf("Incorrect")
@@ -149,22 +136,17 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 
 	var result []string
 
-	//返回结果
 	for queryResultsIterator.HasNext() {
 
 		responseRange, err := queryResultsIterator.Next()
 		if err != nil {
 			return []byte(""), fmt.Errorf("Incorrect")
 		}
-		fmt.Println(responseRange.Value)
-		//分离数据和地址
+		fmt.Printf("\033[1;31;40m%s\033[0m\n", responseRange.Value)
 		Value := strings.Split(string(responseRange.Value), "::")
-		//输出结果（数据）
 		result = append(result, Value[0])
-		fmt.Printf("\033[34mResult: %s\033[0m\n", Value[0])
+		fmt.Println(Value[0])
 		fmt.Println()
-
-		//如果没有地址则为链尾，停止搜索，否则继续搜索文件链
 		if len(Value) != 2 {
 			break
 		} else {
@@ -180,11 +162,9 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 	buf2 := &bytes.Buffer{}
 	gob.NewEncoder(buf2).Encode(result)
 	byteSlice := []byte(buf2.Bytes())
-
 	end := time.Now()
-	//输出总时间
 	b := end.Sub(start)
-	fmt.Printf("Chainquery time cost: %s \n", b)
+	fmt.Println(b)
 	return byteSlice, nil
 }
 
