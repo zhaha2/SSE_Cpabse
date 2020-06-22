@@ -12,20 +12,26 @@ import (
 	"strings"
 )
 
-func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
+func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk, ad string) {
 	file, err := os.Open("plsc.txt")
 	if err != nil {
 		log.Fatal(err)
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
-	num := 101
+
+	num, _:= strconv.Atoi(ad)
 	for scanner.Scan() {
 		lineText := scanner.Text()
+		if len(lineText) == 0{
+			continue
+		}
 		pak := strings.Split(lineText, "||")
+
 		policy := pak[0]
 		keyword := pak[1]
 		data := pak[2]
+
 		c, _ := cpabse.CP_Enc(pm, policy, msk, keyword)
 		c1 := strconv.Itoa(int(c[0]))
 		for i := 1; i < len(c); i++ {
@@ -33,6 +39,7 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
 			c1 += " "
 			c1 += temp
 		}
+
 		ns := strconv.Itoa(num)
 		comm := `peer chaincode invoke -n my -c '{"Args":["set","` + ns + `","` + c1 + `","` + string(data) + `"]}' -C myc`
 		cmd := exec.Command("/bin/sh", "-c", comm)
@@ -40,7 +47,8 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
 		_ = cmd.Run()
 		num++
 	}
-	fmt.Println("upload over")
+	file.Close()
+	fmt.Println("\033[32mUpload Complete\033[0m\n")
 }
 
 func main() {
@@ -59,5 +67,8 @@ func main() {
 	msk := new(cpabse.CpabeMsk)
 	cpabse.BmskToMsk(msk, bmsk, pm)
 
-	set(pm, msk)
+	fmt.Println("Please input the first address")
+	var ad string
+	fmt.Scanln(&ad)
+	set(pm, msk, ad)
 }

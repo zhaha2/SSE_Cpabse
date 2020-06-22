@@ -5,7 +5,7 @@ import (
 	"cpabse"
 	"encoding/gob"
 	"fmt"
-	//"strconv"
+	"strconv"
 	"strings"
 	"time"
 
@@ -163,58 +163,20 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 		result = append(result, Value[0])
 		fmt.Printf("\033[34mResult: %s\033[0m\n", Value[0])
 		fmt.Println()
-		if len(Value) == 1{
-			break
-		}
-		key_next := Value[1]
 
 		//如果没有地址则为链尾，停止搜索，否则继续搜索文件链
-		for {
-			fmt.Printf("\033[33m%s\033[0m\n", "Key: " + key_next)
-			//用复合键中一个键进行查询，这里用地址Key查询
-			queryResultsIterator1, err := stub.GetStateByPartialCompositeKey(key_next, []string{})
-			if err != nil {
-				return []byte(""), fmt.Errorf("Incorrect")
+		if len(Value) != 2 {
+			break
+		} else {
+			var r []string
+			res, _ := chainquery(stub, Value[1])
+			r = append(r, strconv.Itoa(int(res[0])))
+			for i := 1; i < len(res); i++ {
+				r = append(r, strconv.Itoa(int(res[i])))
 			}
-			defer queryResultsIterator1.Close()
-
-
-			responseRange, err = queryResultsIterator1.Next()
-			if err != nil {
-				return []byte(""), fmt.Errorf("Incorrect")
-			}
-			fmt.Println(responseRange.Value)
-			//分离数据和地址
-			Value := strings.Split(string(responseRange.Value), "::")
-			//输出结果（数据）
-			result = append(result, Value[0])
-
-			//找到链尾 搜索结束
-			if len(Value) == 1{
-				fmt.Printf("\033[34mResult: %s\033[0m\n", Value[0])
-				fmt.Println()
-				break
-			}
-
-			//否则，继续按地址搜索
-			key_next = Value[1]
-			fmt.Printf("\033[34mResult: %s\033[0m\n", Value[0])
-			fmt.Println()
+			result = append(result, r...)
 		}
-
-		//if len(Value) != 2 {
-		//	break
-		//} else {
-		//	var r []string
-		//	res, _ := chainquery(stub, Value[1])
-		//	r = append(r, strconv.Itoa(int(res[0])))
-		//	for i := 1; i < len(res); i++ {
-		//		r = append(r, strconv.Itoa(int(res[i])))
-		//	}
-		//	result = append(result, r...)
-		//}
 	}
-	queryResultsIterator.Close()
 	buf2 := &bytes.Buffer{}
 	gob.NewEncoder(buf2).Encode(result)
 	byteSlice := []byte(buf2.Bytes())
