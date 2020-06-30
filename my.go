@@ -5,7 +5,8 @@ import (
 	"cpabse"
 	"encoding/gob"
 	"fmt"
-	//"strconv"
+	"os"
+	"strconv"
 	"strings"
 	"time"
 
@@ -54,7 +55,32 @@ func (t *MyChaincode) Invoke(stub shim.ChaincodeStubInterface) pb.Response {
 		result, err = query(stub, args)
 	} else if fn == "chainquery" {
 		fmt.Println("chainquery")
-		result, err = chainquery(stub, args[0])		//arg[0]为地址（Key1, Key2, ...）
+		result, err, _ = chainquery(stub, args[0])         //arg[0]为地址（Key1, Key2, ...）
+	} else if fn == "batchcq" {
+		fmt.Println("batchcq")
+		var totalTime = int64(0)
+		result, err, totalTime = batchcq(stub, args[0])         //arg[0]为地址串，以空格分开（Key1, Key2, ...）
+		tt := strconv.FormatFloat(float64(totalTime) * 0.000001, 'f', 2,64)
+		fmt.Println("Total time: " + tt +" ms")
+
+		//将搜索总时间写入文件
+		f, err := os.OpenFile("totalTime.txt", os.O_CREATE |os.O_APPEND|os.O_WRONLY, 0777)
+		if err != nil {
+			fmt.Println(err)
+			return shim.Error(err.Error())
+		}
+		_, err = fmt.Fprint(f, tt + " ")
+		if err != nil {
+			fmt.Println(err)
+			f.Close()
+			return shim.Error(err.Error())
+		}
+		err = f.Close()
+		if err != nil {
+			fmt.Println(err)
+			return shim.Error(err.Error())
+		}
+		fmt.Println("Write file complete!")
 	}
 	if err != nil {
 		return shim.Error(err.Error())
@@ -83,7 +109,7 @@ func upload(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 }
 
 func query(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
-	start := time.Now()		//开始时间，一会计时用
+	start := time.Now()             //开始时间，一会计时用
 
 	var p *pbc.Pairing
 	params := new(pbc.Params)
@@ -136,14 +162,14 @@ func query(stub shim.ChaincodeStubInterface, args []string) ([]byte, error) {
 	return byteSlice, nil
 }
 
-func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
+func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error, int64) {
 	//开始时间，一会计时用
 	start := time.Now()
 	fmt.Printf("\033[33m%s\033[0m\n", "Key: " + Key)
 	//用符合键中一个键进行查询，这里用地址Key查询
 	queryResultsIterator, err := stub.GetStateByPartialCompositeKey(Key, []string{})
 	if err != nil {
-		return []byte(""), fmt.Errorf("Incorrect")
+		return []byte(""), fmt.Errorf("Incorrect"), 0
 	}
 	defer queryResultsIterator.Close()
 
@@ -154,7 +180,7 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 
 		responseRange, err := queryResultsIterator.Next()
 		if err != nil {
-			return []byte(""), fmt.Errorf("Incorrect")
+			return []byte(""), fmt.Errorf("Incorrect"), 0
 		}
 		fmt.Println(responseRange.Value)
 		//分离数据和地址
@@ -163,13 +189,7 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 		result = append(result, Value[0])
 		fmt.Printf("\033[34mResult: %s\033[0m\n", Value[0])
 		fmt.Println()
-<<<<<<< HEAD
 		if len(Value) == 1{
-=======
-
-		//如果没有地址则为链尾，停止搜索，否则继续搜索文件链
-		if len(Value) != 2 {
->>>>>>> a9a735456fa3b173a50a586e6626bcb1b8233e8c
 			break
 		}
 		key_next := Value[1]
@@ -180,14 +200,13 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 			//用复合键中一个键进行查询，这里用地址Key查询
 			queryResultsIterator1, err := stub.GetStateByPartialCompositeKey(key_next, []string{})
 			if err != nil {
-				return []byte(""), fmt.Errorf("Incorrect")
+				return []byte(""), fmt.Errorf("Incorrect"), 0
 			}
 			defer queryResultsIterator1.Close()
 
-
 			responseRange, err = queryResultsIterator1.Next()
 			if err != nil {
-				return []byte(""), fmt.Errorf("Incorrect")
+				return []byte(""), fmt.Errorf("Incorrect"), 0
 			}
 			fmt.Println(responseRange.Value)
 			//分离数据和地址
@@ -209,15 +228,15 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 		}
 
 		//if len(Value) != 2 {
-		//	break
+		//      break
 		//} else {
-		//	var r []string
-		//	res, _ := chainquery(stub, Value[1])
-		//	r = append(r, strconv.Itoa(int(res[0])))
-		//	for i := 1; i < len(res); i++ {
-		//		r = append(r, strconv.Itoa(int(res[i])))
-		//	}
-		//	result = append(result, r...)
+		//      var r []string
+		//      res, _ := chainquery(stub, Value[1])
+		//      r = append(r, strconv.Itoa(int(res[0])))
+		//      for i := 1; i < len(res); i++ {
+		//              r = append(r, strconv.Itoa(int(res[i])))
+		//      }
+		//      result = append(result, r...)
 		//}
 	}
 	queryResultsIterator.Close()
@@ -229,7 +248,21 @@ func chainquery(stub shim.ChaincodeStubInterface, Key string) ([]byte, error) {
 	//输出总时间
 	b := end.Sub(start)
 	fmt.Printf("Chainquery time cost: %s \n", b)
-	return byteSlice, nil
+	return byteSlice, nil, b.Nanoseconds()
+}
+
+//批量搜索，统计时间，这里搜索时间不计写入账本所需时间
+func batchcq(stub shim.ChaincodeStubInterface, Key string) ([]byte, error, int64) {
+	keyList := strings.Split(Key, " ")
+	toatalTime := int64(0)
+	for _, v := range keyList{
+		_, err, timecost := chainquery(stub, "Key" + v)
+		toatalTime += timecost
+		if err != nil {
+			return []byte(""), fmt.Errorf("Incorrect"), 0
+		}
+	}
+	return []byte(""), nil, toatalTime
 }
 
 func main() {

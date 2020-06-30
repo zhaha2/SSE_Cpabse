@@ -5,6 +5,7 @@ import (
 	"cpabse"
 	"encoding/gob"
 	"fmt"
+	"io/ioutil"
 	"os"
 	"os/exec"
 	"strconv"
@@ -96,6 +97,26 @@ func chainquery() {
 	}
 }
 
+//一次搜索多个关键字
+func batchcq() {
+
+	//将kwStartIndex读入本地保存
+	kwStartIndex, err := ioutil.ReadFile("kwStartIndex.txt")
+	if err != nil {
+		fmt.Println("File reading error", err)
+		return
+	}
+
+	for i := 0; i < 50; i++ {
+		comm := `peer chaincode invoke -n my -c '{"Args":["batchcq","` + string(kwStartIndex) + `"]}' -C myc`
+		cmd := exec.Command("/bin/sh", "-c", comm)
+		cmd.Stdout = os.Stdout
+		_ = cmd.Run()
+
+		fmt.Printf("\033[32m%s\033[0m", "BatchChainquery Complete\n")
+	}
+}
+
 func main() {
 	//生成pm
 	bpm := new(cpabse.BytePm)
@@ -114,7 +135,7 @@ func main() {
 	msk := new(cpabse.CpabeMsk)
 	cpabse.BmskToMsk(msk, bmsk, pm)
 
-	fmt.Println("Choose what do you want: upload/query/chainquery(U/Q/CQ)")
+	fmt.Println("Choose what do you want: upload/query/chainquery(U/Q/CQ/BQ)")
 	var c string
 	fmt.Scanln(&c)
 	n := 1	//n只有在 U 时才++，注意不要和plzidong的地址冲突
@@ -125,6 +146,8 @@ func main() {
 		query(pm, msk)
 	} else if c == "CQ" || c =="cq" {	//文件链查询
 		chainquery()
+	} else if c == "BQ" || c =="bq" {	//文件链查询
+		batchcq()
 	} else {
 		fmt.Println("error input")
 		return
