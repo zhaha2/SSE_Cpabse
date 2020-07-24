@@ -19,17 +19,8 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk, ad string) {
 	}
 	defer file.Close()
 	scanner := bufio.NewScanner(file)
-<<<<<<< HEAD
-
-	num, _:= strconv.Atoi(ad)
-=======
-<<<<<<< HEAD
 
 	num, err:= strconv.Atoi(ad)
-=======
-	num := 121
->>>>>>> c013c505f79be6fe06cff2bcc6c61cc29642d753
->>>>>>> a9a735456fa3b173a50a586e6626bcb1b8233e8c
 	for scanner.Scan() {
 		lineText := scanner.Text()
 		if len(lineText) == 0{
@@ -56,10 +47,6 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk, ad string) {
 		_ = cmd.Run()
 		num++
 	}
-<<<<<<< HEAD
-	file.Close()
-=======
->>>>>>> a9a735456fa3b173a50a586e6626bcb1b8233e8c
 	fmt.Println("\033[32mUpload Complete\033[0m\n")
 }
 

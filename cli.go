@@ -6,9 +6,11 @@ import (
 	"encoding/gob"
 	"fmt"
 	"io/ioutil"
+	"math/rand"
 	"os"
 	"os/exec"
 	"strconv"
+	"strings"
 )
 
 //IndexGen
@@ -43,7 +45,7 @@ func set(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk, num int) {
 	cmd := exec.Command("/bin/sh", "-c", comm)
 	cmd.Stdout = os.Stdout
 	_ = cmd.Run()
-	fmt.Printf("\033[32m%s\033[0m", "Upload Complete\n")
+	fmt.Printf("\033[32m%s\033[0m", "Upload Complete!\n")
 }
 
 func query(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
@@ -70,9 +72,34 @@ func query(pm *cpabse.CpabePm, msk *cpabse.CpabeMsk) {
 	cmd := exec.Command("/bin/sh", "-c", comm)
 	cmd.Stdout = os.Stdout
 	_ = cmd.Run()
-	fmt.Printf("\033[32m%s\033[0m", "Query Complete\n")
+	fmt.Printf("\033[32m%s\033[0m", "Query Complete!\n")
 
 }
+
+func query1() {
+	var Key string
+	scanner := bufio.NewScanner(os.Stdin)
+	//Key为地址，即上传时的num，这里只能用这个搜
+	fmt.Println("Please enter you Key:")
+	scanner.Scan()
+	Key = scanner.Text()
+	//Key字符转换为数字k
+	k, _ := strconv.Atoi(Key)
+	//这个循环为了模拟多次执行？，这里设置为不循环
+	for i := k; i < k+1; i++ {
+		ks := strconv.Itoa(i)
+		//因为加密时地址为Key1，Key2...，这里也做成这个形式
+		k := "Key" + ks
+
+		comm := `peer chaincode invoke -n my -c '{"Args":["query","` + k + `"]}' -C myc`
+		cmd := exec.Command("/bin/sh", "-c", comm)
+		cmd.Stdout = os.Stdout
+		_ = cmd.Run()
+		fmt.Printf("\033[32m%s\033[0m", "Query Complete!\n")
+	}
+
+}
+
 
 func chainquery() {
 	var Key string
@@ -93,7 +120,28 @@ func chainquery() {
 		cmd := exec.Command("/bin/sh", "-c", comm)
 		cmd.Stdout = os.Stdout
 		_ = cmd.Run()
-		fmt.Printf("\033[32m%s\033[0m", "Chainquery Complete\n")
+		fmt.Printf("\033[32m%s\033[0m", "Chainquery Complete!\n")
+	}
+}
+
+//一次搜索多个关键字
+func batchq() {
+
+	//n为要返回多少结果
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Please enter the number of files you want to get:")
+	scanner.Scan()
+	num := scanner.Text()
+
+	//搜索30次
+	for i := 0; i < 30; i++ {
+		comm := `peer chaincode invoke -n my -c '{"Args":["batchq","` + num + `"]}' -C myc`
+		cmd := exec.Command("/bin/sh", "-c", comm)
+		cmd.Stdout = os.Stdout
+		_ = cmd.Run()
+
+
+		fmt.Printf("\033[32m%s\033[0m", "BatchChainquery Complete\n")
 	}
 }
 
@@ -106,9 +154,27 @@ func batchcq() {
 		fmt.Println("File reading error", err)
 		return
 	}
+	kwStartIndexList := strings.Split(string(kwStartIndex), " ")
 
-	for i := 0; i < 50; i++ {
-		comm := `peer chaincode invoke -n my -c '{"Args":["batchcq","` + string(kwStartIndex) + `"]}' -C myc`
+	//要返回多少结果
+	scanner := bufio.NewScanner(os.Stdin)
+	fmt.Println("Please enter the number of files you want to get:")
+	scanner.Scan()
+	n, err1 := strconv.Atoi(scanner.Text())
+	if err1 != nil {
+		fmt.Println("Input error!", err)
+		return
+	}
+
+	//搜索30次
+	for i := 0; i < 30; i++ {
+		rand.Seed(int64(i))
+		searchkey := ""
+		//每次搜索n/5个关键字，共返回n个结果
+		for j := 0; j < (n / 10); j++{
+			searchkey = searchkey + kwStartIndexList[rand.Intn(1000)] + " "
+		}
+		comm := `peer chaincode invoke -n my -c '{"Args":["batchcq","` + string(searchkey) + `"]}' -C myc`
 		cmd := exec.Command("/bin/sh", "-c", comm)
 		cmd.Stdout = os.Stdout
 		_ = cmd.Run()
@@ -135,7 +201,7 @@ func main() {
 	msk := new(cpabse.CpabeMsk)
 	cpabse.BmskToMsk(msk, bmsk, pm)
 
-	fmt.Println("Choose what do you want: upload/query/chainquery(U/Q/CQ/BQ)")
+	fmt.Println("Please choose the operation: upload/query/chainquery(U/Q/CQ/BQ/BCQ)")
 	var c string
 	fmt.Scanln(&c)
 	n := 1	//n只有在 U 时才++，注意不要和plzidong的地址冲突
@@ -143,10 +209,12 @@ func main() {
 		set(pm, msk, n)
 		n++
 	} else if c == "Q" || c =="q" {
-		query(pm, msk)
+		query1()
 	} else if c == "CQ" || c =="cq" {	//文件链查询
 		chainquery()
-	} else if c == "BQ" || c =="bq" {	//文件链查询
+	} else if c == "BQ" || c =="bq" {
+		batchq()
+	}else if c == "BCQ" || c =="bcq" {	//文件链查询
 		batchcq()
 	} else {
 		fmt.Println("error input")
